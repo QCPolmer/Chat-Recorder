@@ -131,7 +131,7 @@
 		<button onclick="c.main(c.CMD['ADD_FASTER'])"> Add /realfast</button>
 		<button onclick="c.main(c.CMD['ADD_FAST'])"> Add /fast</button>
 		<button onclick="c.main(c.CMD['ADD_NEEDSCLICK'])"> Add /needsclick</button>
-		<button onclick="c.main(c.CMD['MARK_WAKEUP_SCRIPT']);"> Add /wakeupscript </button>
+		<button onclick="c.main(c.CMD['MARK_ENDOF_SCRIPT']);"> Add /endofscript </button>
 		<br><br>
 		<button class='bigbutton'  onclick="c.main(c.CMD['CLEAR_RECORDING']);"> Start From scratch </button>
 		<hr>
@@ -147,8 +147,8 @@
 		<br>/faster makes the playback run at very fast speed.
 		<br>/fast makes the playback run at 2X speed
 		<br>/needsclick will pause the playback and wait for a click. 
-		<br>/wakeupscript will scroll down to the wakeup script when the 
-			'wakeup script' button is pressed. 
+		<br>/endofscript will mark the end of the script, can be skipped too when
+			'end of script' button is pressed. 
 		<br>/clickskips will make pressing the button in playback skip 
 			to the next line that does not contain /clickskip.
 		<br><br>
@@ -167,7 +167,7 @@
 	<div id="cPlayback" class='display' > </div>
 	<center>
 	<button class='bigbutton' onclick="c.main(c.CMD['PLAYBACK_PRESS_BUTTON']);"> Press Button (W)</button>
-	<button class='bigbutton' onclick="c.main(c.CMD['PLAYBACK_GOTO_WAKUP_SCRIPT']);"> Wake Up Script (Q) </button>
+	<button class='bigbutton' onclick="c.main(c.CMD['PLAYBACK_GOTO_END_SCRIPT']);"> End Of Script (Q) </button>
 	<br><br>
 	<button class='bigbutton' onclick="c.main(c.CMD['START_PLAYBACK'])"> Start/Restart Playback</button>
 	<br><br>
@@ -216,7 +216,7 @@
 	c.formatAllBlocksWith = ["<div>","</div>"]
 	c.formatCommands ={ 
 		"/fast":"/fast", "/realfast":"/realfast",  
-		"/clickskips":"/clickskips", "/wakeupscript":"/wakeupscript",
+		"/clickskips":"/clickskips", "/endofscript":"/endofscript",
 		"/needsclick":"/needsclick"
 	};
 	c.speeds ={"/fast":2, "/realfast":30};
@@ -288,7 +288,7 @@
 		onkeypress = function(k){ 
 			if(k.keyCode == 13){ c.main(c.CMD["ADD_TEXT"]);} //enter
 			if(k.charCode == 119){ c.main(c.CMD["PLAYBACK_PRESS_BUTTON"]);} //w
-			if(k.charCode == 113){ c.main(c.CMD["PLAYBACK_GOTO_WAKUP_SCRIPT"]);} }//q 
+			if(k.charCode == 113){ c.main(c.CMD["PLAYBACK_GOTO_END_SCRIPT"]);} }//q 
 		setInterval( function(){ c.main(c.CMD['UPDATE_TIMER']);}, 20);
 	}
 	c.settup_controls();
@@ -297,10 +297,10 @@
 			"ADD_NEEDSCLICK":"ADD_NEEDSCLICK",
 			"ADD_FASTER":"ADD_FASTER", 
 			"MARK_SKIP_CLICKING_STARTING_NOW":"MARK_SKIP_CLICKING_STARTING_NOW", 
-			"MARK_WAKEUP_SCRIPT":"MARK_WAKEUP_SCRIPT",
+			"MARK_ENDOF_SCRIPT":"MARK_ENDOF_SCRIPT",
 			"CLEAR_RECORDING":"CLEAR_RECORDING",
 			
-			"PLAYBACK_GOTO_WAKUP_SCRIPT":"PLAYBACK_GOTO_WAKUP_SCRIPT", 
+			"PLAYBACK_GOTO_END_SCRIPT":"PLAYBACK_GOTO_END_SCRIPT", 
 			"PLAYBACK_PRESS_BUTTON":"PLAYBACK_PRESS_BUTTON",
 			"PLAYBACK_RESET":"PLAYBACK_RESET",
 			
@@ -340,8 +340,8 @@
 			c.divInputBox.value += c.formatCommands["/needsclick"];}
 		if(getCommand == c.CMD["ADD_FASTER"]){ c.divInputBox.focus();
 			c.divInputBox.value += c.formatCommands["/realfast"];}
-		if(getCommand == c.CMD["MARK_WAKEUP_SCRIPT"]){ c.divInputBox.focus();
-			c.divInputBox.value += c.formatCommands["/wakeupscript"];}
+		if(getCommand == c.CMD["MARK_ENDOF_SCRIPT"]){ c.divInputBox.focus();
+			c.divInputBox.value += c.formatCommands["/endofscript"];}
 		if(getCommand == c.CMD["MARK_SKIP_CLICKING_STARTING_NOW"]){
 			c.divInputBox.focus();
 			c.divInputBox.value += c.formatCommands["/clickskips"];}
@@ -415,19 +415,19 @@
 				c.dataPlayback.time += 2*parseInt(
 					c.dataPlayback.commands[c.dataPlayback.place].split( c.TIME_BLOCK)[1]);
 				return; }	}		
-		if( getCommand == c.CMD["PLAYBACK_GOTO_WAKUP_SCRIPT"]){
-			var wakupScriptPlace = 0;
+		if( getCommand == c.CMD["PLAYBACK_GOTO_END_SCRIPT"]){
+			var endScriptPlace = 0;
 			var count =0;
 			for(i in c.dataPlayback.commands){ 
-				if(c.dataPlayback.commands[count].split("/wakeupscript")
+				if(c.dataPlayback.commands[count].split("/endofscript")
 					.length > 1){
-						wakupScriptPlace = count; }
+						endScriptPlace = count; }
 				count +=1;	}
-			if(wakupScriptPlace >0){
-				while(wakupScriptPlace > c.dataPlayback.place){
+			if(endScriptPlace >0){
+				while(endScriptPlace > c.dataPlayback.place){
 					c.dataPlayback.commands.splice(c.dataPlayback.place, 1);
 					c.dataPlayback.time = 0;
-					wakupScriptPlace -=1;
+					endScriptPlace -=1;
 			}	}
 		}
 		if( getCommand == c.CMD["PLAYBACK_RESET"]){
