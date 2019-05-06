@@ -117,7 +117,8 @@
 <div id="record_container">
 	<center>
 	<button class='bigbutton' onclick="c.main(c.CMD['START_PLAYBACK']); c.HideShow(['record_container','saveBox'],['playback_container','playbackBackButton']);"> Test It Out!</button>
-	<button class='bigbutton'  onclick="c.main(c.CMD['SAVE_FILE']); c.HideShow(['playback_container','record_container'],['saveBox']);"> Save It! </button>
+	<button class='bigbutton' onclick="c.main(c.CMD['GENERATE_FOR_EDITBOX_BY_LINE']); c.HideShow(['record_container','saveBox'],['edit_container']);"> Edit/Generate From ChatLog!</button>
+	<button class='bigbutton'  onclick="c.main(c.CMD['SAVE_FILE']);  c.HideShow(['playback_container','record_container'],['saveBox']);"> Save It! </button>
 	</center>
 	<div id="cRecord" class='display'> </div>
 	
@@ -159,6 +160,51 @@
 		<br>This will be a recording of what was typed.
 	</center>
 </div>
+
+<div id="edit_container" hidden=true>
+	<center>
+	<button class='bigbutton'  onclick="c.main(c.CMD['SAVE_EDITBOX']); c.main(c.CMD['SAVE_FILE']); c.HideShow(['playback_container','record_container','edit_container'],['saveBox']);"> Save It! </button>
+	<hr>
+	The text in the box below is the current working chatroom,
+	the @TIME@ marks how many steps until the next line appears.
+	It's safe to copy, add, or delete lines, but be sure to have 
+	the @TIME@ with a number after it on every line, or it won't be used!
+	(lines with '\< >' will have what's between them invisible 
+		(It gets read as an HTML tag)))
+	<h2> Loaded Room </h2>
+ 	<textarea id="cEditBox" > </textarea>
+	<hr>
+	<h2> Generate from chatlog </h2>
+	Paste text copied from a chatroom below, and click the button to 
+	turn the current working chatroom(the above text box) into what was written 
+	in the textbox below. 
+	(Chatroom format(s): '02:00:00 PM line text')
+	<br>Time separated by (any of the following):
+		<input id='cLineDivInput' value="am: pm: AM PM"></input>
+	<br>Hours/minutes/seconds separated by:
+		<input id='cLineDivTimeInput' value=":"></input>
+	<br>
+	<button class='bigbutton'  onclick="c.main(c.CMD['GENERATE_FROM_CHATLOG']); "> Generate From chatlog! (paste Below) </button>
+	<br>
+	<textarea id="cPasteChatlog" > </textarea>
+	<br>
+	<hr>
+	<h2> Speed up or slow down text-block</h2>
+	Paste text below (in the format of 'text @TIME@000') and click one 
+	of the buttons to speed up/slow down the text block 
+	<br>
+	<button class='bigbutton'  onclick="c.main(c.CMD['GENERATE_SPEED_UP_BLOCK']); "> Speed Up Block (20% faster)! (paste Below) </button>
+	<button class='bigbutton'  onclick="c.main(c.CMD['GENERATE_SPEED_DOWN_BLOCK']); "> Speed Down Block (20% slower)! (paste Below) </button>
+	
+	<br>
+	<textarea id="cSpeedUpBlock" > </textarea>
+	
+	</center>
+	
+</div>
+
+
+
 <!-- convert this one to innerHTML and put on final page-->
 <div id="playback_container" hidden=false > 
 	<center>
@@ -177,13 +223,17 @@
 <!-- convert this one to innerHTML and put on final page-->
 <div id="saveBox" hidden=true > 
 	<center>
-	<button class='bigbutton'  onclick="c.main(c.CMD['SAVE_FILE']); c.HideShow(['playback_container','saveBox'],['record_container']);"> &#8656; Back To Record </button>
-	<br>
-	<textarea id="cSaveBox" onclick="this.select()" readOnly='true'> </textarea>
-	
+	<button class='bigbutton'  onclick="c.main(c.CMD['SAVE_EDITBOX']); c.HideShow(['playback_container','saveBox'],['record_container']);"> &#8656; Back To Record </button>
 	<br>
 	<hr>
-	&#10003; Save the above text to a html file. (click, copy, past to text file, rename the file extension .html)  &#10003;
+	&#10003; Save the below text to a html file. (click, copy, past to text file, rename the file extension .html)  &#10003;
+	<hr>
+	<textarea id="cSaveBox" onclick="this.select()" readOnly='true'> </textarea>
+	<hr>
+	&#10003; Save the text below (copy and paste it to a text document) if you want to edit this later!  &#10003;
+	<hr> 
+	<textarea id="cSaveBox_TextOnly" onclick="this.select()" readOnly='true'> </textarea>
+	
 	
 	</center>
 </div>
@@ -281,7 +331,15 @@
 	c.divSavedHTML = document.getElementById('cSaveBox');// should be an element (textArea)
 	c.playbackHTML_div_Caught = 
 		document.getElementById('playback_container').innerHTML + "";
+	c.divEditBox = document.getElementById('cEditBox');
+	c.divPasteChatlog = document.getElementById('cPasteChatlog');
+	c.divSpeedUpBox = document.getElementById('cSpeedUpBlock');
+	c.divSaved_TextBlk = document.getElementById('cSaveBox_TextOnly');
+	c.divSaved_Split_Input_Box = document.getElementById('cLineDivInput');
+	c.divSaved_SplitTime_Input_Box = document.getElementById('cLineDivTimeInput');
+	
 	//saved
+	c.INTERVAL_STEP = 20;
 	c.settup_controls = function(){
 		c.divPlayback = document.getElementById('cPlayback');// should be an element
 		
@@ -289,7 +347,16 @@
 			if(k.keyCode == 13){ c.main(c.CMD["ADD_TEXT"]);} //enter
 			if(k.charCode == 119){ c.main(c.CMD["PLAYBACK_PRESS_BUTTON"]);} //w
 			if(k.charCode == 113){ c.main(c.CMD["PLAYBACK_GOTO_END_SCRIPT"]);} }//q 
-		setInterval( function(){ c.main(c.CMD['UPDATE_TIMER']);}, 20);
+		setInterval( function(){ c.main(c.CMD['UPDATE_TIMER']);}, c.INTERVAL_STEP);
+	}
+	c.speedup_lines = function(t, speed){
+		var tmpCmds = t.split('\n');
+		for(var i =0; i< tmpCmds.length; i+=1){
+			if(tmpCmds[i].split("@TIME@").length > 1){
+				tmpI = tmpCmds[i].split("@TIME@");
+				tmpCmds[i] = tmpI[0] + "@TIME@" +
+					Math.round( parseInt( tmpI[1] ) * speed); }}
+		return tmpCmds.join('\n');
 	}
 	c.settup_controls();
 	// control buttons with onclick EG:onclick="console.log(c.CMD); c.main('');"
@@ -306,14 +373,94 @@
 			
 			"UPDATE_TIMER":"UPDATE_TIMER",
 			
+			"GENERATE_FOR_EDITBOX_BY_LINE":"GENERATE_FOR_EDITBOX_BY_LINE",
+			"SAVE_EDITBOX":"SAVE_EDITBOX",
+			"GENERATE_SPEED_UP_BLOCK": "GENERATE_SPEED_UP_BLOCK",
+			"GENERATE_SPEED_DOWN_BLOCK": "GENERATE_SPEED_DOWN_BLOCK",
+			
 			"UPDATE_PLAYBACK_TEXT": "UPDATE_PLAYBACK_TEXT",
 			"UPDATE_DISP_TEXT": "UPDATE_DISP_TEXT",
 			"START_PLAYBACK": "START_PLAYBACK",
 			
-			"SAVE_FILE":"SAVE_FILE"}
+			"SAVE_FILE":"SAVE_FILE"
+			}
 	c.TIME_BLOCK = "@TIME@";
 	c.TIMEBLOCK_MAX = 10000000000000;
+	
+	c.SPEED_UP_MOD = 0.80;
 	c.main = function(getCommand){
+		if( getCommand == c.CMD["GENERATE_SPEED_UP_BLOCK"]){
+			c.divSpeedUpBox.value = 
+				c.speedup_lines( c.divSpeedUpBox.value, (1/c.SPEED_UP_MOD)); }
+		if( getCommand == c.CMD["GENERATE_SPEED_DOWN_BLOCK"]){
+			c.divSpeedUpBox.value = 
+				c.speedup_lines( c.divSpeedUpBox.value, (c.SPEED_UP_MOD));} 
+		if( getCommand == c.CMD["GENERATE_FOR_EDITBOX_BY_LINE"]){
+			c.divEditBox.value = "";
+			for(var i =0; i< c.data.commands.length; i+=1){
+				c.divEditBox.value += 
+					c.data.commands[i] + "\n";	}
+			}
+		if( getCommand == c.CMD["SAVE_EDITBOX"]){
+			
+			c.data.time = 0;
+			var tmpCmds = c.divEditBox.value.split('\n');
+			c.data.commands = [];
+			for(var i =0; i< tmpCmds.length; i+=1){
+				if(tmpCmds[i].split("@TIME@").length > 1){
+					c.data.commands.push( tmpCmds[i]); }} 
+			c.data.place = 0;
+			}
+		if( getCommand == c.CMD["GENERATE_FROM_CHATLOG"]){
+			c.divEditBox.value = "";
+			tmpData_Inital= c.divPasteChatlog.value.split("\n");
+			tmpData_Times = []; tmpData = [];
+			
+			for(var i =0; i< tmpData_Inital.length; i+=1){
+				//var tmpPFS = ["am:","pm:","AM","PM"]; 
+				var tmpPFS = c.divSaved_Split_Input_Box.value.trim().split(" ");
+					//probably will add this to actual script
+				for(var j =0; j< tmpPFS.length; j+=1){
+					if( tmpData_Inital[i].split( tmpPFS[j]).length >1 ){
+							tmpData_Times.push( 
+								tmpData_Inital[i].split( tmpPFS[j])[0]);
+							tmpData.push( 
+								tmpData_Inital[i].split( tmpPFS[j])[1]);
+						j = 100;}
+				}
+			}
+			
+			var SEC_MULT = 1000/c.INTERVAL_STEP;
+			var MIN_MULT = 60 * SEC_MULT; 
+			var HOUR_MULT = 60 * MIN_MULT; 
+			
+			var tmpPFS = c.divSaved_SplitTime_Input_Box.value.trim().split(" ");
+			//var tmpPFS = [":"]; 
+			var tmpSplit = ["@@"]
+			for(var i =0; i< tmpData_Times.length; i+=1){
+				for(var j=0; j < tmpPFS.length; j+=1){
+					tmpData_Times[i] = 
+						tmpData_Times[i].split(tmpPFS[j]).join(tmpSplit); }
+				
+				
+				var tmpTimeSplit = tmpData_Times[i].split(tmpSplit);
+				tmpData_Times[i] = (tmpTimeSplit[0] * HOUR_MULT) + 
+									(tmpTimeSplit[1] * MIN_MULT) + 
+									(tmpTimeSplit[2] * SEC_MULT);
+			}
+			
+			c.divEditBox.value += tmpData[0]+ "@TIME@"+"0" + " \n";
+			for(var i =1; i< tmpData.length; i+=1){
+				var tmpTime=  (tmpData_Times[i] - tmpData_Times[i-1]);
+				//For if over 12
+				while(tmpTime <0){ tmpTime = tmpTime + HOUR_MULT;}
+				while(tmpTime >HOUR_MULT){ tmpTime = tmpTime - HOUR_MULT;}
+				
+				c.divEditBox.value += tmpData[i]+ "@TIME@"+
+					tmpTime+  " \n";
+			}
+		}	
+	
 		if(getCommand == c.CMD["ADD_TEXT"]){ c.divInputBox.focus();
 			if(c.divInputBox.value != ""){ 
 				if(c.data.commands.length ==0){c.data.time = 0;}
@@ -437,8 +584,13 @@
 				
 		if( getCommand == c.CMD["SAVE_FILE"]){ 
 			c.divSavedHTML.value = c.saveFile();
+			
+			c.divSaved_TextBlk.value = "";
+			for(var i =0; i< c.data.commands.length; i+=1){
+				c.divSaved_TextBlk.value += 
+					c.data.commands[i] + "\n";	}
 			//this needs to be put in 
-			}
+			}	
 	}
 	c.saveFile = function(){
 		c.dataPlayback.place = c.dataPlayback.commands.length;
